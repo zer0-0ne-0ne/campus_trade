@@ -18,7 +18,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import axios from 'axios'
+import request from '../utils/request'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 
@@ -33,7 +33,7 @@ const login = async () => {
   }
 
   try {
-    const res = await axios.post('http://localhost:8080/user/login', {
+    const res = await request.post('/user/login', {
       username: username.value,
       password: password.value
     })
@@ -43,15 +43,14 @@ const login = async () => {
 
       localStorage.setItem('token', 'LOGIN_SUCCESS')
       localStorage.setItem('username', user.username)
-      localStorage.setItem('password', user.password)
-      localStorage.setItem('phone', user.phone || '') // 保存手机号
-      localStorage.setItem('email', user.email || '') // 保存邮箱
-      localStorage.setItem('uid', user.uid + '') // 保存UID
-      localStorage.setItem('identity',user.identity)
-      localStorage.setItem('status',user.status)
-      localStorage.setItem('avatar',user.avatar)
+      localStorage.setItem('phone', user.phone || '')
+      localStorage.setItem('email', user.email || '')
+      localStorage.setItem('uid', user.uid + '')
+      localStorage.setItem('identity', user.identity)
+      localStorage.setItem('status', user.status)
+      localStorage.setItem('avatar', user.avatar)
       ElMessage.success('登录成功')
-      router.push('/home')
+      router.push('/')
     } else {
       ElMessage.error('账号或密码错误')
     }
@@ -61,42 +60,36 @@ const login = async () => {
 }
 
 const toRegister = () => {
-  console.log("点击去注册")
   router.push('/register')
 }
 </script>
 
 <style scoped>
 .login-page {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 9999;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-image: url("https://picsum.photos/id/1039/1920/1080");
+  background-image: url('../assets/login_bg.webp');
   background-size: cover;
   background-position: center;
+  background-color: var(--bg);
 }
 
 .login-card {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--card);
   backdrop-filter: blur(5px);
   padding: 40px 30px;
   border-radius: 12px;
-  box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 15px var(--shadow-card);
   width: 380px;
+  max-width: 90vw;
   text-align: center;
-  position: relative;
-  z-index: 10;
 }
 
 .login-card h2 {
   margin-bottom: 30px;
-  color: #333;
+  color: var(--text);
 }
 
 .form-item {
@@ -106,10 +99,12 @@ const toRegister = () => {
 .form-item input {
   width: 100%;
   padding: 12px 15px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   font-size: 15px;
   box-sizing: border-box;
+  background: var(--card);
+  color: var(--text);
 }
 
 .btn-group {
@@ -121,27 +116,21 @@ const toRegister = () => {
 
 .btn-login {
   padding: 12px;
-  background: #409eff;
+  background: var(--primary);
   color: white;
   border: none;
   border-radius: 8px;
   font-size: 16px;
   cursor: pointer;
-  position: relative;
-  z-index: 100;
-  pointer-events: auto;
 }
 
 .btn-to-register {
   padding: 12px;
-  background: white;
-  color: #666;
-  border: 1px solid #ddd;
+  background: var(--card);
+  color: var(--text-secondary);
+  border: 1px solid var(--line);
   border-radius: 8px;
   font-size: 15px;
   cursor: pointer;
-  position: relative;
-  z-index: 100;
-  pointer-events: auto;
 }
 </style>

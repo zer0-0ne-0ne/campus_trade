@@ -54,13 +54,14 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import request from '../utils/request'
+import { getAvatar } from '../utils/images'
 
 const router = useRouter()
 
 const userName = ref('校园用户')
 const userIdentity = ref('学生')
-const userAvatar = ref('https://picsum.photos/100/100')
+const userAvatar = ref(getAvatar(null))
 
 const publishCount = ref(0)
 const collectCount = ref(0)
@@ -79,12 +80,10 @@ const loadRealCount = async () => {
   if (!uid) return
 
   try {
-    // 我的发布数量
-    const resPublish = await axios.get('http://localhost:8080/product/user/' + uid)
+    const resPublish = await request.get('/product/user/' + uid)
     publishCount.value = resPublish.data.length
 
-    // 我的收藏数量
-    const resCollect = await axios.get('http://localhost:8080/collect/myIds', {
+    const resCollect = await request.get('/collect/myIds', {
       params: { uid }
     })
     collectCount.value = resCollect.data.ids?.length || 0
@@ -108,14 +107,10 @@ const logout = () => {
 
 <style scoped>
 .mine-page {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: #f5f5f5;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 30px 20px 60px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  overflow-y: auto;
 }
 
 .card-hover {
@@ -129,16 +124,13 @@ const logout = () => {
 }
 
 .user-card {
-  background-color: white;
-  margin: 160px 700px 10px 700px;
+  background-color: var(--card);
   padding: 20px;
   display: flex;
   align-items: center;
   gap: 15px;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-  pointer-events: none;
-  cursor: default;
+  box-shadow: 0 2px 10px var(--shadow);
 }
 
 .avatar {
@@ -146,7 +138,7 @@ const logout = () => {
   height: 70px;
   border-radius: 50%;
   overflow: hidden;
-  border: 2px solid #f0f0f0;
+  border: 2px solid var(--line);
 }
 .avatar img {
   width: 100%;
@@ -160,26 +152,26 @@ const logout = () => {
 .name {
   font-size: 18px;
   font-weight: 600;
-  color: #222;
+  color: var(--text);
 }
 .desc {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 
 .menu-list {
-  background-color: white;
+  background-color: var(--card);
   border-radius: 12px;
-  margin: 0 700px;
+  margin-top: 16px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 10px var(--shadow);
 }
 .menu-item {
   display: flex;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--line);
 }
 .menu-item:last-child {
   border-bottom: none;
@@ -190,18 +182,18 @@ const logout = () => {
 }
 .menu-title {
   font-size: 16px;
-  color: #333;
+  color: var(--text);
 }
 
 .stats-section {
-  background-color: white;
+  background-color: var(--card);
   border-radius: 12px;
-  margin: 20px 700px;
+  margin-top: 16px;
   padding: 20px;
   display: flex;
   align-items: center;
   justify-content: space-around;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 10px var(--shadow);
 }
 .stat-item {
   text-align: center;
@@ -209,32 +201,31 @@ const logout = () => {
 .stat-value {
   font-size: 22px;
   font-weight: 600;
-  color: #409eff;
+  color: var(--primary);
 }
 .stat-label {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 .stat-divider {
   width: 1px;
   height: 30px;
-  background-color: #f0f0f0;
+  background-color: var(--line);
 }
 
 .logout-section {
-  margin: 0 680px;
-  padding: 0 20px;
+  margin-top: 16px;
 }
 .logout-btn {
   width: 100%;
   padding: 14px;
-  background-color: white;
-  color: #ff4d4f;
+  background-color: var(--card);
+  color: var(--danger);
   border: none;
   border-radius: 12px;
   font-size: 16px;
   font-weight: 500;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 10px var(--shadow);
 }
 </style>

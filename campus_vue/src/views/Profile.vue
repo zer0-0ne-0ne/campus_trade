@@ -1,71 +1,68 @@
 <template>
   <div class="profile-page">
-    <div class="card">
-      <h2 style="text-align:center; margin-bottom:25px;">个人资料</h2>
+    <div class="container">
+      <div class="back-bar">
+        <button class="back-btn" @click="back">← 返回</button>
+        <h2>个人资料</h2>
+      </div>
 
-      <div class="form-item">
-        <label>头像</label>
-        <input
-            type="file"
-            ref="fileInput"
-            accept="image/*"
-            @change="handleFileChange"
-            style="display:none"
-        />
-        <button
-            class="btn-upload"
-            type="button"
-            @click="fileInput.click()"
-        >
-          {{ form.avatar ? '重新选择头像' : '选择头像' }}
-        </button>
-        <div v-if="form.avatar" style="margin-top:10px;">
-          <img :src="form.avatar" style="width:120px;height:120px;object-fit:cover;border-radius:8px;">
+      <div class="card">
+        <div class="form-item">
+          <label>头像</label>
+          <input
+              type="file"
+              ref="fileInput"
+              accept="image/*"
+              @change="handleFileChange"
+              style="display:none"
+          />
+          <button class="btn-upload" type="button" @click="fileInput.click()">
+            {{ form.avatar ? '重新选择头像' : '选择头像' }}
+          </button>
+          <div v-if="form.avatar" class="avatar-preview">
+            <img :src="form.avatar" alt="头像">
+          </div>
         </div>
-      </div>
 
-      <div class="item">
-        <label>用户名</label>
-        <input v-model="form.username" />
-      </div>
+        <div class="item">
+          <label>用户名</label>
+          <input v-model="form.username" />
+        </div>
 
-      <div class="item">
-        <label>密码</label>
-        <input
-            type="password"
-            v-model="form.password"
-            :placeholder="'•'.repeat(form.passwordLength || 8)"
-        />
-      </div>
+        <div class="item">
+          <label>密码</label>
+          <input type="password" v-model="form.password" placeholder="留空则不修改" />
+        </div>
 
-      <div class="item">
-        <label>手机号</label>
-        <input v-model="form.phone" />
-      </div>
+        <div class="item">
+          <label>手机号</label>
+          <input v-model="form.phone" />
+        </div>
 
-      <div class="item">
-        <label>邮箱</label>
-        <input v-model="form.email" />
-      </div>
+        <div class="item">
+          <label>邮箱</label>
+          <input v-model="form.email" />
+        </div>
 
-      <div class="item">
-        <label>UID</label>
-        <input disabled v-model="form.uid" placeholder="无" />
-      </div>
+        <div class="item">
+          <label>UID</label>
+          <input disabled v-model="form.uid" placeholder="无" />
+        </div>
 
-      <div class="item">
-        <label>身份</label>
-        <input disabled v-model="form.identity" placeholder="无" />
-      </div>
+        <div class="item">
+          <label>身份</label>
+          <input disabled v-model="form.identity" placeholder="无" />
+        </div>
 
-      <div class="item">
-        <label>账号状态</label>
-        <input disabled v-model="form.statusText" placeholder="无" />
-      </div>
+        <div class="item">
+          <label>账号状态</label>
+          <input disabled v-model="form.statusText" placeholder="无" />
+        </div>
 
-      <div class="btns">
-        <button @click="save">保存修改</button>
-        <button @click="back">返回</button>
+        <div class="btns">
+          <button class="btn-save" @click="save">保存修改</button>
+          <button class="btn-cancel" @click="back">返回</button>
+        </div>
       </div>
     </div>
   </div>
@@ -75,10 +72,10 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import request from '../utils/request'
 
 const router = useRouter()
-const fileInput = ref(null) // 对应 ref="fileInput"
+const fileInput = ref(null)
 
 const form = ref({
   uid: '',
@@ -88,8 +85,7 @@ const form = ref({
   password: '',
   phone: '',
   email: '',
-  avatar: '',
-  passwordLength: 0
+  avatar: ''
 })
 
 onMounted(() => {
@@ -102,12 +98,8 @@ onMounted(() => {
 
   const status = localStorage.getItem('status') || '0'
   form.value.statusText = status == '0' ? '正常' : '禁用'
-
-  const realPwd = localStorage.getItem('password') || ''
-  form.value.passwordLength = realPwd.length
 })
 
-// 图片选择
 const handleFileChange = (e) => {
   const file = e.target.files[0]
   if (!file) return
@@ -119,7 +111,6 @@ const handleFileChange = (e) => {
   reader.readAsDataURL(file)
 }
 
-// 保存
 const save = async () => {
   try {
     const data = {
@@ -131,7 +122,7 @@ const save = async () => {
       avatar: form.value.avatar || ''
     }
 
-    const res = await axios.put('http://localhost:8080/user/update', data)
+    const res = await request.put('/user/update', data)
 
     if (res.data === 'ok') {
       ElMessage.success('保存成功！')
@@ -154,24 +145,40 @@ const back = () => {
 
 <style scoped>
 .profile-page {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 9999;
+  padding: 20px 20px 60px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+.back-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,0.1);
+  gap: 15px;
+  margin-bottom: 20px;
 }
-.card{
-  background:#fff;
-  padding:45px;
-  border-radius:12px;
-  width:480px;
-  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+.back-bar h2 {
+  color: var(--text);
+  margin: 0;
 }
+.back-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card);
+  cursor: pointer;
+  color: var(--text);
+}
+
+.card {
+  background: var(--card);
+  padding: 35px 40px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px var(--shadow);
+}
+
 .form-item {
   margin-bottom: 22px;
   display: flex;
@@ -180,48 +187,91 @@ const back = () => {
 .form-item label {
   width: 95px;
   font-size: 14px;
-  color: #333;
+  color: var(--text);
+  flex-shrink: 0;
 }
 .btn-upload {
   padding: 8px 16px;
-  background: #409eff;
+  background: var(--primary);
   color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
 }
-.item{
-  margin-bottom:22px;
-  display:flex;
-  align-items:center;
+.avatar-preview {
+  margin-top: 10px;
 }
-label{
-  width:95px;
-  font-size:14px;
-  color:#333;
+.avatar-preview img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
 }
-input{
-  flex:1;
-  padding:10px 14px;
-  border:1px solid #dcdfe6;
-  border-radius:6px;
+
+.item {
+  margin-bottom: 22px;
+  display: flex;
+  align-items: center;
 }
-input:disabled{
-  background:#f5f7fa;
-  color:#909399;
+.item label {
+  width: 95px;
+  font-size: 14px;
+  color: var(--text);
+  flex-shrink: 0;
 }
-.btns{
-  display:flex;
-  gap:15px;
-  margin-top:35px;
+.item input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--text);
 }
-button{
-  flex:1;
-  padding:12px;
-  border-radius:6px;
-  border:none;
-  background:#409eff;
-  color:#fff;
-  cursor:pointer;
+.item input:disabled {
+  background: var(--input-bg-disabled);
+  color: var(--text-muted);
+}
+
+.btns {
+  display: flex;
+  gap: 15px;
+  margin-top: 35px;
+}
+.btn-save {
+  flex: 1;
+  padding: 12px;
+  border-radius: 6px;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+}
+.btn-cancel {
+  flex: 1;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 20px;
+  }
+  .form-item,
+  .item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .form-item label,
+  .item label {
+    width: auto;
+  }
+  .item input {
+    width: 100%;
+  }
 }
 </style>

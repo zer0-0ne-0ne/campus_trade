@@ -11,7 +11,6 @@
         <input v-model="password" type="password" placeholder="请输入密码" />
       </div>
 
-      <!-- 身份选择 -->
       <div class="form-item">
         <select v-model="identity" class="select-input">
           <option value="">请选择身份</option>
@@ -30,7 +29,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import axios from 'axios'
+import request from '../utils/request'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 
@@ -46,7 +45,7 @@ const register = async () => {
   }
 
   try {
-    const res = await axios.post('http://localhost:8080/user/register', {
+    const res = await request.post('/user/register', {
       username: username.value,
       password: password.value,
       identity: identity.value
@@ -70,29 +69,29 @@ const toLogin = () => {
 
 <style scoped>
 .register-page {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 9999;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-image: url("https://picsum.photos/1920/1080?random=1");
+  background-image: url('../assets/login_bg.webp');
   background-size: cover;
   background-position: center;
-  pointer-events: none;
+  background-color: var(--bg);
 }
 
 .register-card {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--card);
   padding: 40px 30px;
   border-radius: 12px;
-  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 15px var(--shadow-card);
   width: 380px;
+  max-width: 90vw;
   text-align: center;
-  pointer-events: auto;
+}
+
+.register-card h2 {
+  color: var(--text);
+  margin-bottom: 30px;
 }
 
 .form-item {
@@ -103,12 +102,12 @@ const toLogin = () => {
 .select-input {
   width: 100%;
   padding: 12px 15px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   box-sizing: border-box;
   font-size: 14px;
-  color: #666;
-  background-color: white;
+  color: var(--text);
+  background-color: var(--card);
 }
 
 .select-input {
@@ -127,7 +126,7 @@ const toLogin = () => {
 }
 .btn-register {
   padding: 12px;
-  background: #67c23a;
+  background: var(--success);
   color: white;
   border: none;
   border-radius: 8px;
@@ -135,16 +134,10 @@ const toLogin = () => {
 }
 .btn-back {
   padding: 12px;
-  background: white;
-  color: #666;
-  border: 1px solid #ddd;
+  background: var(--card);
+  color: var(--text-secondary);
+  border: 1px solid var(--line);
   border-radius: 8px;
   cursor: pointer;
-}
-</style>
-
-<style>
-.el-message {
-  z-index: 9999999 !important;
 }
 </style>

@@ -3,17 +3,23 @@ package com.example.campus_trade.service.impl;
 import com.example.campus_trade.entity.User;
 import com.example.campus_trade.mapper.UserMapper;
 import com.example.campus_trade.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
 public class UserServiceImpl implements UserService {
 
-    private final UserMapper userMapper;
+    private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
 
-    // 构造器注入
-    public UserServiceImpl(UserMapper userMapper) {
+    private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
+
+    public UserServiceImpl(UserMapper userMapper, PasswordEncoder passwordEncoder) {
         this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -48,52 +54,37 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean addUser(User user) {
         try {
-            System.out.println("==================== 注册开始 ====================");
-
-            // 基础校验
             if (user == null) {
-                System.out.println("【错误】user 对象为 null");
+                log.error("注册失败：user 对象为 null");
                 return false;
             }
-            System.out.println("用户名：" + user.getUsername());
-            System.out.println("密码：" + user.getPassword());
-            System.out.println("身份：" + user.getIdentity());
-
             if (user.getUsername() == null || user.getUsername().isEmpty()) {
-                System.out.println("【错误】用户名为空");
+                log.error("注册失败：用户名为空");
                 return false;
             }
             if (user.getPassword() == null || user.getPassword().isEmpty()) {
-                System.out.println("【错误】密码为空");
+                log.error("注册失败：密码为空");
                 return false;
             }
             if (user.getIdentity() == null || user.getIdentity().isEmpty()) {
-                System.out.println("【错误】身份为空");
+                log.error("注册失败：身份为空");
                 return false;
             }
 
-            // 检查用户名是否重复
             User exist = getUserByUsername(user.getUsername());
             if (exist != null) {
-                System.out.println("【错误】用户名已存在：" + user.getUsername());
+                log.error("注册失败：用户名已存在 - {}", user.getUsername());
                 return false;
             }
-            System.out.println("【检查】用户名可用");
 
-            // 补全状态
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
             user.setStatus(0);
-            System.out.println("【状态】设置 status=0");
 
-            // 执行插入
-            System.out.println("【执行】开始插入数据库...");
             int rows = userMapper.addUser(user);
-            System.out.println("【结果】插入行数：" + rows);
-
             return rows > 0;
 
         } catch (Exception e) {
-            System.out.println("==================== 注册异常 ====================");
-            e.printStackTrace(); // 打印完整错误
+            log.error("注册异常", e);
             return false;
         }
     }
@@ -102,6 +93,9 @@ public class UserServiceImpl implements UserService {
     public boolean updateUser(User user) {
         if (user == null || user.getUid() <= 0) {
             return false;
+        }
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
         return userMapper.updateUser(user) > 0;
     }
@@ -122,14 +116,13 @@ public class UserServiceImpl implements UserService {
         return userMapper.deleteUser(uid) > 0;
     }
 
-    // 登录
+    @Override
     public User login(String username, String password) {
         User user = userMapper.findByUsername(username);
         if (user == null) {
             return null;
         }
-        // 比对密码
-        if (user.getPassword().equals(password)) {
+        if (passwordEncoder.matches(password, user.getPassword())) {
             return user;
         }
         return null;

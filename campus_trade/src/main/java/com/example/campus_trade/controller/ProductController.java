@@ -3,6 +3,7 @@ package com.example.campus_trade.controller;
 import com.example.campus_trade.entity.Product;
 import com.example.campus_trade.service.AiCheckService;
 import com.example.campus_trade.service.ProductService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -19,7 +20,12 @@ public class ProductController implements WebMvcConfigurer {
 
     private final ProductService productService;
     private final AiCheckService aiCheckService;
-    private static final String UPLOAD_FOLDER = "D:/campus_trade_upload/";
+
+    @Value("${upload.folder}")
+    private String uploadFolder;
+
+    @Value("${upload.base-url}")
+    private String uploadBaseUrl;
 
     public ProductController(ProductService productService, AiCheckService aiCheckService) {
         this.productService = productService;
@@ -30,7 +36,7 @@ public class ProductController implements WebMvcConfigurer {
     @PostMapping("/upload")
     public UploadResult upload(@RequestParam("file") MultipartFile file) {
         try {
-            File dir = new File(UPLOAD_FOLDER);
+            File dir = new File(uploadFolder);
             if (!dir.exists()) {
                 boolean created = dir.mkdirs();
                 if (!created) {
@@ -40,10 +46,10 @@ public class ProductController implements WebMvcConfigurer {
 
             String originalFilename = file.getOriginalFilename();
             String fileName = UUID.randomUUID() + "_" + originalFilename;
-            File dest = new File(UPLOAD_FOLDER, fileName);
+            File dest = new File(uploadFolder, fileName);
             file.transferTo(dest);
 
-            String url = "http://localhost:8080/files/" + fileName;
+            String url = uploadBaseUrl + fileName;
             return new UploadResult(url);
         } catch (Exception e) {
             e.printStackTrace();
@@ -55,7 +61,7 @@ public class ProductController implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/files/**")
-                .addResourceLocations("file:" + UPLOAD_FOLDER);
+                .addResourceLocations("file:" + uploadFolder);
     }
 
     // 上传返回结果类

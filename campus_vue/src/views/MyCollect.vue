@@ -9,10 +9,7 @@
       <div class="goods-list">
         <div class="product-card" v-for="p in productList" :key="p.pid">
           <div class="product-img">
-            <img
-                :src="p.imagePath || 'https://picsum.photos/400/300?random='+p.pid"
-                alt="商品图片"
-            >
+            <img :src="getProductImage(p.imagePath, p.pid)" alt="商品图片">
           </div>
 
           <div class="card-content">
@@ -21,16 +18,13 @@
             <div class="product-price">¥{{ p.price }}</div>
           </div>
 
-          <!-- 查看详情 -->
-          <button class="view-btn" @click="goDetail(p.pid)">查看</button>
-
-          <!-- 取消收藏 -->
-          <button class="del-btn" @click="cancelCollect(p.pid)">取消收藏</button>
+          <div class="action-btns">
+            <button class="view-btn" @click="goDetail(p.pid)">查看</button>
+            <button class="del-btn" @click="cancelCollect(p.pid)">取消收藏</button>
+          </div>
         </div>
 
-        <div v-if="productList.length === 0" style="text-align:center; padding:40px; color:#999;">
-          暂无收藏商品
-        </div>
+        <div v-if="productList.length === 0" class="empty">暂无收藏商品</div>
       </div>
     </div>
   </div>
@@ -38,12 +32,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import axios from 'axios'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import request from '../utils/request'
+import { getProductImage } from '../utils/images'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const productList = ref([]) // 收藏的商品列表
+const productList = ref([])
 
 onMounted(() => {
   getMyCollectList()
@@ -57,8 +52,7 @@ const getMyCollectList = async () => {
   }
 
   try {
-    // 获取收藏的商品ID
-    const resIds = await axios.get('http://localhost:8080/collect/myIds', {
+    const resIds = await request.get('/collect/myIds', {
       params: { uid }
     })
     const ids = resIds.data.ids || []
@@ -68,14 +62,13 @@ const getMyCollectList = async () => {
       return
     }
 
-    // 根据商品ID批量获取详情
     const list = []
-    for (const pid of ids) {
-      const res = await axios.get(`http://localhost:8080/product/detail/${pid}`)
-      if (res.data) {
-        list.push(res.data)
-      }
-    }
+    const detailRequests = ids.map(pid =>
+      request.get('/product/detail/' + pid)
+        .then(res => { if (res.data) list.push(res.data) })
+        .catch(() => {})
+    )
+    await Promise.all(detailRequests)
     productList.value = list
   } catch (e) {
     console.error(e)
@@ -83,29 +76,30 @@ const getMyCollectList = async () => {
   }
 }
 
-// 跳转到详情
 const goDetail = (pid) => {
-  router.push(`/product/${pid}`)
+  router.push('/product/' + pid)
 }
 
 const cancelCollect = async (pid) => {
   const uid = localStorage.getItem('uid')
   if (!uid) return
 
-  if (!confirm('确定取消收藏该商品吗？')) return
-
   try {
-    await axios.post('http://localhost:8080/collect/delete', null, {
+    await ElMessageBox.confirm('确定取消收藏该商品吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await request.post('/collect/delete', null, {
       params: { uid, pid }
     })
     ElMessage.success('取消收藏成功')
-    getMyCollectList() // 刷新列表
+    getMyCollectList()
   } catch (e) {
-    ElMessage.error('取消收藏失败')
+    if (e !== 'cancel') ElMessage.error('取消收藏失败')
   }
 }
 
-// 返回
 const goBack = () => {
   router.go(-1)
 }
@@ -113,19 +107,13 @@ const goBack = () => {
 
 <style scoped>
 .my-collect-page {
-  position: fixed;
-  top: 60px;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: var(--bg);
+  padding: 30px 20px 60px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  overflow-y: auto;
-  padding: 30px;
 }
 .container {
-  width: 700px;
+  max-width: 700px;
   margin: 0 auto;
+  width: 100%;
 }
 .back-bar {
   display: flex;
@@ -133,18 +121,19 @@ const goBack = () => {
   gap: 15px;
   margin-bottom: 20px;
 }
+.back-bar h2 {
+  color: var(--text);
+  margin: 0;
+  font-size: 18px;
+}
 .back-btn {
   padding: 6px 12px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fff;
+  background: var(--card);
   cursor: pointer;
+  color: var(--text);
 }
-.back-bar h2 {
-  margin: 0;
-  font-size: 18px;
-}
-
 .goods-list {
   display: flex;
   flex-direction: column;
@@ -156,11 +145,12 @@ const goBack = () => {
   overflow: hidden;
   display: flex;
   align-items: center;
-  box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 5px var(--shadow);
 }
 .product-img {
   width: 120px;
   height: 120px;
+  flex-shrink: 0;
 }
 .product-img img {
   width: 100%;
@@ -170,6 +160,7 @@ const goBack = () => {
 .card-content {
   flex: 1;
   padding: 15px;
+  min-width: 0;
 }
 .product-name {
   font-size: 16px;
@@ -178,32 +169,55 @@ const goBack = () => {
 }
 .product-desc {
   font-size: 13px;
-  color: var(--text);
+  color: var(--text-secondary);
   margin: 0 0 5px;
 }
 .product-price {
   font-size: 16px;
-  color: #ff4d4f;
+  color: var(--price);
   font-weight: bold;
 }
-
+.action-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 15px;
+  flex-shrink: 0;
+}
 .view-btn {
-  margin-right: 10px;
-  background: #409eff;
+  background: var(--primary);
   color: #fff;
   border: none;
   padding: 8px 12px;
   border-radius: 4px;
   cursor: pointer;
 }
-
 .del-btn {
-  margin-right: 15px;
-  background: #ff4d4f;
+  background: var(--danger);
   color: #fff;
   border: none;
   padding: 8px 12px;
   border-radius: 4px;
   cursor: pointer;
+}
+.empty {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .product-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .product-img {
+    width: 100%;
+    height: 160px;
+  }
+  .action-btns {
+    flex-direction: row;
+    padding: 0 15px 15px;
+  }
 }
 </style>

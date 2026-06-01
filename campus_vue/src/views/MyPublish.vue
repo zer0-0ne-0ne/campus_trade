@@ -9,10 +9,7 @@
       <div class="goods-list">
         <div class="product-card" v-for="p in showList" :key="p.pid">
           <div class="product-img">
-            <img
-                :src="p.imagePath || 'https://picsum.photos/400/300?random='+p.pid"
-                alt="商品图片"
-            >
+            <img :src="getProductImage(p.imagePath, p.pid)" alt="商品图片">
           </div>
 
           <div class="card-content">
@@ -21,13 +18,13 @@
             <div class="product-price">¥{{ p.price }}</div>
           </div>
 
-          <button class="view-btn" @click="goDetail(p.pid)">查看</button>
-          <button class="del-btn" @click="deleteGoods(p.pid)">删除</button>
+          <div class="action-btns">
+            <button class="view-btn" @click="goDetail(p.pid)">查看</button>
+            <button class="del-btn" @click="deleteGoods(p.pid)">删除</button>
+          </div>
         </div>
 
-        <div v-if="showList.length === 0" style="text-align:center; padding:40px; color:#999;">
-          暂无发布商品
-        </div>
+        <div v-if="showList.length === 0" class="empty">暂无发布商品</div>
       </div>
     </div>
   </div>
@@ -35,8 +32,9 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { ElMessage } from 'element-plus'
-import axios from 'axios'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import request from '../utils/request'
+import { getProductImage } from '../utils/images'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -54,7 +52,7 @@ const getMyProducts = async () => {
   }
 
   try {
-    const res = await axios.get('http://localhost:8080/product/user/' + uid)
+    const res = await request.get('/product/user/' + uid)
     productList.value = res.data
   } catch (e) {
     console.error(e)
@@ -62,19 +60,22 @@ const getMyProducts = async () => {
   }
 }
 
-// ✅ 关键：过滤掉 status = 3 的已下架商品
 const showList = computed(() => {
   return productList.value.filter(p => p.status !== 3)
 })
 
 const goDetail = (pid) => {
-  router.push(`/product/${pid}`)
+  router.push('/product/' + pid)
 }
 
 const deleteGoods = async (pid) => {
-  if (!confirm('确定删除该商品？')) return
   try {
-    const res = await axios.post('http://localhost:8080/product/delete/' + pid)
+    await ElMessageBox.confirm('确定删除该商品？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    const res = await request.post('/product/delete/' + pid)
     if (res.data === '删除成功') {
       ElMessage.success('删除成功')
       getMyProducts()
@@ -82,7 +83,7 @@ const deleteGoods = async (pid) => {
       ElMessage.error('删除失败')
     }
   } catch (e) {
-    ElMessage.error('删除失败')
+    if (e !== 'cancel') ElMessage.error('删除失败')
   }
 }
 
@@ -93,19 +94,13 @@ const goBack = () => {
 
 <style scoped>
 .my-publish-page {
-  position: fixed;
-  top: 60px;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: var(--bg);
+  padding: 30px 20px 60px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  overflow-y: auto;
-  padding: 30px;
 }
 .container {
-  width: 700px;
+  max-width: 700px;
   margin: 0 auto;
+  width: 100%;
 }
 .back-bar {
   display: flex;
@@ -113,18 +108,19 @@ const goBack = () => {
   gap: 15px;
   margin-bottom: 20px;
 }
+.back-bar h2 {
+  color: var(--text);
+  margin: 0;
+  font-size: 18px;
+}
 .back-btn {
   padding: 6px 12px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fff;
+  background: var(--card);
   cursor: pointer;
+  color: var(--text);
 }
-.back-bar h2 {
-  margin: 0;
-  font-size: 18px;
-}
-
 .goods-list {
   display: flex;
   flex-direction: column;
@@ -136,11 +132,12 @@ const goBack = () => {
   overflow: hidden;
   display: flex;
   align-items: center;
-  box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 5px var(--shadow);
 }
 .product-img {
   width: 120px;
   height: 120px;
+  flex-shrink: 0;
 }
 .product-img img {
   width: 100%;
@@ -150,6 +147,7 @@ const goBack = () => {
 .card-content {
   flex: 1;
   padding: 15px;
+  min-width: 0;
 }
 .product-name {
   font-size: 16px;
@@ -158,32 +156,55 @@ const goBack = () => {
 }
 .product-desc {
   font-size: 13px;
-  color: var(--text);
+  color: var(--text-secondary);
   margin: 0 0 5px;
 }
 .product-price {
   font-size: 16px;
-  color: #ff4d4f;
+  color: var(--price);
   font-weight: bold;
 }
-
+.action-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 15px;
+  flex-shrink: 0;
+}
 .view-btn {
-  margin-right: 10px;
-  background: #409eff;
+  background: var(--primary);
   color: #fff;
   border: none;
   padding: 8px 12px;
   border-radius: 4px;
   cursor: pointer;
 }
-
 .del-btn {
-  margin-right: 15px;
-  background: #ff4d4f;
+  background: var(--danger);
   color: #fff;
   border: none;
   padding: 8px 12px;
   border-radius: 4px;
   cursor: pointer;
+}
+.empty {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .product-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .product-img {
+    width: 100%;
+    height: 160px;
+  }
+  .action-btns {
+    flex-direction: row;
+    padding: 0 15px 15px;
+  }
 }
 </style>

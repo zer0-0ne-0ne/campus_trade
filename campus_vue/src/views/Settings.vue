@@ -72,25 +72,23 @@ const goBack = () => router.back()
 
 <style scoped>
 .settings-page {
-  position: fixed;
-  top: 60px;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: var(--bg);
+  padding: 30px 20px 60px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  overflow-y: auto;
-  padding: 30px;
 }
 .container {
-  width: 650px;
+  max-width: 650px;
   margin: 0 auto;
+  width: 100%;
 }
 .back-bar {
   display: flex;
   align-items: center;
   gap: 15px;
   margin-bottom: 25px;
+}
+.back-bar h2 {
+  color: var(--text);
+  margin: 0;
 }
 .back-btn {
   padding: 6px 14px;
@@ -100,15 +98,12 @@ const goBack = () => router.back()
   color: var(--text);
   cursor: pointer;
 }
-.back-bar h2 {
-  color: var(--text);
-  margin: 0;
-}
 
 .setting-box {
   background: var(--card);
   border-radius: 12px;
   padding: 20px 25px;
+  box-shadow: 0 1px 4px var(--shadow);
 }
 .setting-item {
   display: flex;
@@ -126,14 +121,14 @@ const goBack = () => router.back()
 .toggle {
   width: 46px;
   height: 25px;
-  background: #ccc;
+  background: var(--line);
   border-radius: 999px;
   position: relative;
   cursor: pointer;
   transition: 0.2s;
 }
 .toggle.active {
-  background: #409eff;
+  background: var(--primary);
 }
 .circle {
   width: 19px;
@@ -162,8 +157,8 @@ const goBack = () => router.back()
   cursor: pointer;
 }
 .font-btn.active {
-  background: #409eff;
+  background: var(--primary);
   color: #fff;
-  border-color: #409eff;
+  border-color: var(--primary);
 }
 </style>

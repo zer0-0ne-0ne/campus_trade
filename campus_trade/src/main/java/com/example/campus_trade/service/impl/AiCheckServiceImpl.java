@@ -1,6 +1,7 @@
 package com.example.campus_trade.service.impl;
 
 import com.example.campus_trade.service.AiCheckService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
@@ -9,7 +10,8 @@ import java.util.Map;
 @Service
 public class AiCheckServiceImpl implements AiCheckService {
 
-    private static final String AI_CHECK_URL = "http://127.0.0.1:8000/ai/check";
+    @Value("${ai.check.url}")
+    private String aiCheckUrl;
 
     @Override
     public boolean checkViolation(String content) {
@@ -18,7 +20,7 @@ public class AiCheckServiceImpl implements AiCheckService {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("content", content);
 
-            Map response = restTemplate.postForObject(AI_CHECK_URL, requestBody, Map.class);
+            Map response = restTemplate.postForObject(aiCheckUrl, requestBody, Map.class);
 
             if (response == null || !response.get("code").equals(200)) {
                 System.out.println("=== AI服务返回异常，默认放行 ===");

@@ -8,7 +8,7 @@
 
       <div class="detail-card">
         <div class="product-img">
-          <img :src="product.imagePath || 'https://picsum.photos/600/400?random='+product.pid" alt="商品图片">
+          <img :src="getProductImage(product.imagePath, product.pid)" alt="商品图片">
         </div>
 
         <div class="product-info">
@@ -34,7 +34,6 @@
       </div>
     </div>
 
-    <!-- 购买弹窗 -->
     <div class="buy-dialog-mask" v-if="showBuyDialog" @click.self="closeBuyDialog">
       <div class="buy-dialog">
         <h3>确认下单</h3>
@@ -54,31 +53,30 @@
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import request from '../utils/request'
+import { getProductImage } from '../utils/images'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 const route = useRoute()
 const product = ref({})
+const categoryList = ref([])
 const categoryName = ref('')
 const isMyOwn = ref(false)
 const isCollected = ref(false)
 
-// 弹窗
 const showBuyDialog = ref(false)
 const orderForm = ref({
   trade_time: '',
   trade_place: ''
 })
 
-// 打开弹窗
 const openBuyDialog = () => {
   const uid = localStorage.getItem('uid')
   if (!uid) {
@@ -88,7 +86,6 @@ const openBuyDialog = () => {
   showBuyDialog.value = true
 }
 
-// 关闭弹窗
 const closeBuyDialog = () => {
   showBuyDialog.value = false
   orderForm.value = { trade_time: '', trade_place: '' }
@@ -109,7 +106,6 @@ const confirmBuy = async () => {
   }
 
   try {
-    // 构建订单
     const order = {
       pid: Number(product.value.pid),
       buyerId: Number(uid),
@@ -119,40 +115,31 @@ const confirmBuy = async () => {
       status: 0
     }
 
-    // 发送请求
-    const res = await axios({
-      method: 'POST',
-      url: 'http://localhost:8080/order/add',
-      data: order,
-      headers: { 'Content-Type': 'application/json' }
-    })
+    const res = await request.post('/order/add', order)
 
     if (res.data === '创建订单成功') {
-      ElMessage.success('✅ 下单成功！')
+      ElMessage.success('下单成功！')
       closeBuyDialog()
     } else {
-      ElMessage.error('❌ ' + res.data)
+      ElMessage.error(res.data)
     }
-
   } catch (error) {
     console.error('错误', error)
-    ElMessage.error('❌ 下单失败：服务器异常')
+    ElMessage.error('下单失败：服务器异常')
   }
 }
 
-// 分类
-const getCategoryName = (cid) => {
-  const map = {
-    4: '电子产品',
-    5: '生活用品',
-    6: '书籍资料',
-    7: '文具办公',
-    8: '体育用品'
-  }
-  return map[cid] || '未分类'
+const getCategoryNameById = (cid) => {
+  const cat = categoryList.value.find(c => c.cid === cid)
+  return cat ? cat.categoryName : '未分类'
 }
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    const catRes = await request.get('/category/list')
+    categoryList.value = catRes.data
+  } catch (e) {}
+
   const pid = route.params.pid
   if (!pid) return
   loadProductDetail(pid)
@@ -160,9 +147,9 @@ onMounted(() => {
 
 const loadProductDetail = async (pid) => {
   try {
-    const res = await axios.get(`http://localhost:8080/product/detail/${pid}`)
+    const res = await request.get('/product/detail/' + pid)
     product.value = res.data
-    categoryName.value = getCategoryName(product.value.cid)
+    categoryName.value = getCategoryNameById(product.value.cid)
     const loginUid = localStorage.getItem('uid')
     isMyOwn.value = loginUid && product.value.uid == loginUid
     if (!isMyOwn.value && loginUid) checkCollectStatus(loginUid, pid)
@@ -173,7 +160,7 @@ const loadProductDetail = async (pid) => {
 
 const checkCollectStatus = async (uid, pid) => {
   try {
-    const res = await axios.get('http://localhost:8080/collect/isCollect', { params: { uid, pid } })
+    const res = await request.get('/collect/isCollect', { params: { uid, pid } })
     isCollected.value = res.data.isCollect
   } catch (e) {}
 }
@@ -183,11 +170,11 @@ const toggleCollect = async () => {
   const pid = product.value.pid
   try {
     if (isCollected.value) {
-      await axios.post('http://localhost:8080/collect/delete', null, { params: { uid, pid } })
+      await request.post('/collect/delete', null, { params: { uid, pid } })
       isCollected.value = false
       ElMessage.success('取消收藏')
     } else {
-      await axios.post('http://localhost:8080/collect/add', null, { params: { uid, pid } })
+      await request.post('/collect/add', null, { params: { uid, pid } })
       isCollected.value = true
       ElMessage.success('收藏成功')
     }
@@ -198,11 +185,16 @@ const toggleCollect = async () => {
 
 const deleteGoods = async () => {
   try {
-    await axios.delete(`http://localhost:8080/product/delete/${product.value.pid}`)
+    await ElMessageBox.confirm('确定删除该商品？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await request.post('/product/delete/' + product.value.pid)
     ElMessage.success('删除成功')
     router.go(-1)
   } catch (e) {
-    ElMessage.error('删除失败')
+    if (e !== 'cancel') ElMessage.error('删除失败')
   }
 }
 
@@ -211,19 +203,13 @@ const goBack = () => router.go(-1)
 
 <style scoped>
 .product-detail-page {
-  position: fixed;
-  top: 60px;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: var(--bg);
+  padding: 30px 20px 60px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  overflow-y: auto;
-  padding: 30px;
 }
 .container {
-  width: 800px;
+  max-width: 800px;
   margin: 0 auto;
+  width: 100%;
 }
 .back-bar {
   display: flex;
@@ -231,23 +217,24 @@ const goBack = () => router.go(-1)
   gap: 15px;
   margin-bottom: 20px;
 }
-.back-btn {
-  padding: 6px 12px;
-  border: 1px solid var(--line, #ddd);
-  border-radius: 6px;
-  background: var(--card, #fff);
-  color: var(--text, #333);
-  cursor: pointer;
-}
 .back-bar h2 {
+  color: var(--text);
   margin: 0;
   font-size: 18px;
 }
+.back-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+}
 .detail-card {
-  background: var(--card, #fff);
+  background: var(--card);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 5px var(--shadow);
 }
 .product-img {
   width: 100%;
@@ -267,16 +254,17 @@ const goBack = () => router.go(-1)
 .title {
   font-size: 22px;
   margin: 0 0 10px;
+  color: var(--text);
 }
 .desc {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0 0 15px;
   line-height: 1.6;
 }
 .price {
   font-size: 24px;
-  color: #ff4d4f;
+  color: var(--price);
   font-weight: bold;
   margin: 0 0 15px;
 }
@@ -284,7 +272,8 @@ const goBack = () => router.go(-1)
   display: flex;
   gap: 20px;
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
+  flex-wrap: wrap;
 }
 .action-bar {
   display: flex;
@@ -293,9 +282,9 @@ const goBack = () => router.go(-1)
 .contact-btn {
   flex: 1;
   padding: 12px;
-  border: 1px solid #409eff;
-  background: #fff;
-  color: #409eff;
+  border: 1px solid var(--primary);
+  background: var(--card);
+  color: var(--primary);
   border-radius: 6px;
   cursor: pointer;
 }
@@ -303,7 +292,7 @@ const goBack = () => router.go(-1)
   flex: 1;
   padding: 12px;
   border: none;
-  background: #409eff;
+  background: var(--primary);
   color: #fff;
   border-radius: 6px;
   cursor: pointer;
@@ -312,7 +301,7 @@ const goBack = () => router.go(-1)
   flex: 1;
   padding: 12px;
   border: none;
-  background: #ff4d4f;
+  background: var(--danger);
   color: #fff;
   border-radius: 6px;
   cursor: pointer;
@@ -324,21 +313,23 @@ const goBack = () => router.go(-1)
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
 }
 .buy-dialog {
-  background: #fff;
+  background: var(--card);
   width: 420px;
+  max-width: 90vw;
   padding: 24px;
   border-radius: 12px;
 }
 .buy-dialog h3 {
   margin: 0 0 20px;
   text-align: center;
+  color: var(--text);
 }
 .form-item {
   margin-bottom: 16px;
@@ -347,12 +338,15 @@ const goBack = () => router.go(-1)
   display: block;
   margin-bottom: 6px;
   font-size: 14px;
+  color: var(--text);
 }
 .form-item input {
   width: 100%;
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--input-border);
   border-radius: 6px;
+  background: var(--card);
+  color: var(--text);
 }
 .dialog-btns {
   display: flex;
@@ -361,16 +355,31 @@ const goBack = () => router.go(-1)
 .btn-cancel {
   flex: 1;
   padding: 12px;
-  border: 1px solid #ddd;
-  background: #fff;
+  border: 1px solid var(--line);
+  background: var(--card);
   border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
 }
 .btn-confirm {
   flex: 1;
   padding: 12px;
   border: none;
-  background: #409eff;
+  background: var(--primary);
   color: #fff;
   border-radius: 6px;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .product-img {
+    height: 200px;
+  }
+  .title {
+    font-size: 18px;
+  }
+  .price {
+    font-size: 20px;
+  }
 }
 </style>

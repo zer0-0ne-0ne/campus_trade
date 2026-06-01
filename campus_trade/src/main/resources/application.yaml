@@ -1,10 +1,31 @@
 spring:
+  config:
+    import: optional:file:./.env[.properties]
   datasource:
-    url: jdbc:mysql://localhost:3306/campus_trade?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
+    url: ${DB_URL:jdbc:mysql://localhost:3306/campus_trade?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis:
   configuration:
     map-underscore-to-camel-case: true
+
+ai:
+  deepseek:
+    api-key: ${DEEPSEEK_API_KEY:}
+    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1/chat/completions}
+  siliconflow:
+    api-key: ${SILICONFLOW_API_KEY:}
+    base-url: ${SILICONFLOW_BASE_URL:https://api.siliconflow.cn/v1/chat/completions}
+    embedding-url: ${SILICONFLOW_EMBEDDING_URL:https://api.siliconflow.cn/v1/embeddings}
+  check:
+    url: ${AI_CHECK_URL:http://127.0.0.1:8000/ai/check}
+
+upload:
+  folder: ${UPLOAD_FOLDER:D:/campus_trade_upload/}
+  base-url: ${UPLOAD_BASE_URL:http://localhost:8080/files/}
+
+jwt:
+  secret: ${JWT_SECRET:campus-trade-default-jwt-secret-key-must-be-at-least-256-bits-long}
+  expiration: 86400000
