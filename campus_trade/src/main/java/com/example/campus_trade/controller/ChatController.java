@@ -46,7 +46,8 @@ public class ChatController {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    // ✨ 新增：存储每个用户的对话历史
+    // 存储每个用户的对话历史，使用ConcurrentHashMap保证线程安全
+    // key: 用户ID, value: 对话消息列表
     private static final Map<String, List<Map<String, String>>> USER_HISTORY = new ConcurrentHashMap<>();
     private static final int MAX_HISTORY_SIZE = 10;
 
@@ -70,7 +71,7 @@ public class ChatController {
     @PostMapping
     public ResponseEntity<Map<String, Object>> chat(@RequestBody Map<String, String> body) {
         String question = body.get("question");
-        // ✨ 获取用户ID
+        // 获取用户ID
         String uid = body.get("userId");
 
         // 验证用户是否登录
@@ -123,7 +124,7 @@ public class ChatController {
         return ResponseEntity.ok(history);
     }
 
-    // ✨ 新增：保存历史
+    // 保存对话历史，限制最多保存10条
     private void saveToHistory(String uid, String role, String content) {
         List<Map<String, String>> history = USER_HISTORY.computeIfAbsent(uid, k -> new ArrayList<>());
         Map<String, String> msg = new HashMap<>();
@@ -216,9 +217,7 @@ public class ChatController {
         return new ArrayList<>(history.subList(start, history.size()));
     }
 
-    /**
-     * 从AI回复中提取商品ID，生成跳转action
-     */
+    // 从AI回复中提取商品ID，生成跳转action
     private Action extractProductAction(String reply) {
         if (reply == null) return null;
         Matcher m = PID_PATTERN.matcher(reply);
@@ -228,9 +227,7 @@ public class ChatController {
         return null;
     }
 
-    /**
-     * 根据用户问题匹配导航意图
-     */
+    // 根据用户问题匹配导航意图
     private Action matchAction(String question) {
         if (question == null) return null;
         for (ActionRule rule : ACTION_RULES) {
@@ -243,9 +240,7 @@ public class ChatController {
         return null;
     }
 
-    /**
-     * RAG方式回答（带上下文）
-     */
+    // RAG方式回答（带上下文）
     private String chatWithRag(String question, String uid) {
         List<Map<String, Object>> products = ragService.getActiveProductsForRag();
 
@@ -279,9 +274,7 @@ public class ChatController {
         return generateAnswerWithContext(question, topProducts, uid);
     }
 
-    /**
-     * 传统关键词检索方式（带上下文）
-     */
+    // 传统关键词检索方式（带上下文）
     private String chatWithKeywordSearch(String question, String uid) {
         List<Map<String, Object>> products = jdbcTemplate.queryForList(
                 "SELECT pid, title, description, price FROM product WHERE status=1"
@@ -328,9 +321,7 @@ public class ChatController {
         return callDeepSeekChat(prompt, question);
     }
 
-    /**
-     * 调用AI生成RAG回答（带上下文）
-     */
+    // 调用AI生成RAG回答（带上下文）
     private String generateAnswerWithContext(String question, List<ProductScore> products, String uid) {
         StringBuilder context = new StringBuilder();
         for (int i = 0; i < products.size(); i++) {
@@ -340,7 +331,7 @@ public class ChatController {
                     .append("，价格：").append(String.format("%.2f", p.price)).append("元\n");
         }
 
-        // ✨ 获取历史上下文
+        // 获取历史上下文
         List<Map<String, String>> history = getRecentHistory(uid);
         StringBuilder historyStr = new StringBuilder();
         if (!history.isEmpty()) {
@@ -369,7 +360,7 @@ public class ChatController {
         sysMsg.put("content", systemPrompt);
         messages.add(sysMsg);
 
-        // ✨ 添加历史对话到消息列表
+        // 添加历史对话到消息列表
         for (Map<String, String> msg : history) {
             Map<String, String> historyMsg = new HashMap<>();
             historyMsg.put("role", msg.get("role"));
@@ -406,9 +397,7 @@ public class ChatController {
         return reply.replace("**", "");
     }
 
-    /**
-     * 调用DeepSeek Chat API
-     */
+    // 调用DeepSeek Chat API
     private String callDeepSeekChat(String systemPrompt, String userQuestion) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + deepseekApiKey);
@@ -445,9 +434,7 @@ public class ChatController {
         return reply.replace("**", "");
     }
 
-    /**
-     * 余弦相似度计算
-     */
+    // 余弦相似度计算
     private double cosineSimilarity(List<Double> v1, List<Double> v2) {
         double dot = 0.0, norm1 = 0.0, norm2 = 0.0;
         for (int i = 0; i < v1.size(); i++) {
@@ -458,9 +445,7 @@ public class ChatController {
         return dot / (Math.sqrt(norm1) * Math.sqrt(norm2));
     }
 
-    /**
-     * 内部类：商品评分
-     */
+    // 内部类：商品评分
     static class ProductScore {
         int pid;
         String title;

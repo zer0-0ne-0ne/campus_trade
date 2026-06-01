@@ -10,6 +10,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+// JWT工具类，提供Token生成、解析和验证功能，使用HMAC-SHA256算法进行签名
 @Component
 public class JwtUtil {
 
@@ -19,10 +20,12 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private long expiration;
 
+    // 获取签名密钥
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
+    // 生成JWT Token
     public String generateToken(Long uid, String username) {
         return Jwts.builder()
                 .subject(String.valueOf(uid))
@@ -33,6 +36,7 @@ public class JwtUtil {
                 .compact();
     }
 
+    // 解析Token并获取载荷信息
     public Claims parseToken(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
@@ -41,11 +45,13 @@ public class JwtUtil {
                 .getPayload();
     }
 
+    // 从Token中提取用户ID
     public Long getUidFromToken(String token) {
         Claims claims = parseToken(token);
         return Long.parseLong(claims.getSubject());
     }
 
+    // 验证Token是否有效
     public boolean validateToken(String token) {
         try {
             parseToken(token);

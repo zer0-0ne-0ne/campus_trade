@@ -1,12 +1,15 @@
+// axios 请求封装模块，统一处理请求拦截、响应拦截、错误处理
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '../router'
 
+// 创建 axios 实例，baseURL为后端API地址，timeout为请求超时时间（15秒）
 const request = axios.create({
   baseURL: 'http://localhost:8080',
   timeout: 15000
 })
 
+// 请求拦截器：在发送请求前自动添加 Authorization token
 request.interceptors.request.use(
   config => {
     const token = localStorage.getItem('token')
@@ -18,6 +21,7 @@ request.interceptors.request.use(
   error => Promise.reject(error)
 )
 
+// 响应拦截器：统一处理响应错误（401登录过期、403权限不足、500服务器异常）
 request.interceptors.response.use(
   response => response,
   error => {
